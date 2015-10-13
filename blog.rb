@@ -26,10 +26,10 @@ class Blog
 		puts ' '
 		puts ' '
 
-		show_three_posts(posts, index, gets.chomp)
+		show_the_posts(posts, index, gets.chomp)
 	end
 
-	def show_three_posts(posts, index = 0, query = '')
+	def show_the_posts(posts, index = 0, query = '')
 		if query == 'prev' && index > 0
 			index -= @page_length
 		elsif query == 'next' && index < (posts.size - @page_length)
@@ -50,7 +50,7 @@ class Blog
 			b.date <=> a.date
 		end
 
-		show_three_posts(ordered_posts)
+		show_the_posts(ordered_posts)
 	end
 end
 
