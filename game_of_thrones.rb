@@ -1,6 +1,3 @@
-# require 'pry'
-require 'colorize'
-
 class World
 	attr_accessor :rooms
 
@@ -28,51 +25,87 @@ class Room
 end
 
 class Item
-	attr_reader :description, :true_name, :names, :pick_up_text, :special_powers
+	attr_reader :description, :true_name, :names, :pick_up_text
 
 	def initialize(description, true_name, names, pick_up_text)
 		@description = description
 		@true_name = true_name
 		@names = names
 		@pick_up_text = pick_up_text
-		@special_powers = special_powers
+	end
+end
+
+class Player
+	attr_accessor :items, :current_index
+
+	def initialize(current_index = nil)
+		@items = []
+	end
+end
+
+class Movement
+	def initialize(world, player)
+		@world = world
+		@player = player
+	end
+
+	def change_room(index, move_description = "I don't understand")
+		room = @world.rooms.find { |room| room.index == index }
+		puts ' '
+		puts move_description
+		if room.items.size > 0
+			item_text = room.items.reduce('') do |sum, item|
+				sum + " #{item.description} "
+			end
+			puts "#{room.description}#{item_text}"
+		else
+			puts room.description
+		end
+		print '> '
+		Intelligence.new(@world, @player).interpret(room, gets.chomp.downcase)
 	end
 end
 
 class Intelligence
-	def move(room, query, player)
+	def initialize(world, player)
+		@world = world
+		@player = player
+		@movement = Movement.new(world, player)
+	end
+
+	def interpret(room, query)
 		if query == 'quit'
 			return
 		elsif query == 'i'
 			puts ' '
 			puts 'Your items:'.underline
-			player.items.each do |item|
+			@player.items.each do |item|
 				puts item.true_name
 			end
-			player.change_room(room.index, 'Good work.')
+			@movement.change_room(room.index, '')
 		elsif query == 'n'
 			if room.directions[:north][1]
-				player.change_room(room.directions[:north][2], room.directions[:north][0])
+				@movement.change_room(room.directions[:north][2], room.directions[:north][0])
 			else
-				player.change_room(room.index, room.directions[:north][0])
+				@movement.change_room(room.index, room.directions[:north][0])
 			end
 		elsif query == 's'
 			if room.directions[:south][1]
-				player.change_room(room.directions[:south][2], room.directions[:south][0])
+				@movement.change_room(room.directions[:south][2], room.directions[:south][0])
 			else
-				player.change_room(room.index, room.directions[:south][0])
+				@movement.change_room(room.index, room.directions[:south][0])
 			end
 		elsif query == 'e'
 			if room.directions[:east][1]
-				player.change_room(room.directions[:east][2], room.directions[:east][0])
+				@movement.change_room(room.directions[:east][2], room.directions[:east][0])
 			else
-				player.change_room(room.index, room.directions[:east][0])
+				@movement.change_room(room.index, room.directions[:east][0])
 			end
 		elsif query == 'w'
 			if room.directions[:west][1]
-				player.change_room(room.directions[:west][2], room.directions[:west][0])
+				@movement.change_room(room.directions[:west][2], room.directions[:west][0])
 			else
-				player.change_room(room.index, room.directions[:west][0])
+				@movement.change_room(room.index, room.directions[:west][0])
 			end
 		elsif query.include?('pick up ')
 			query = query[8..query.length]
@@ -87,43 +120,17 @@ class Intelligence
 					end
 				end
 				if !item_to_pick_up.nil?
-					player.items << item_to_pick_up
+					@player.items << item_to_pick_up
 					room.items.delete(item_to_pick_up)
-					player.change_room(room.index, item_to_pick_up.pick_up_text)
+					@movement.change_room(room.index, item_to_pick_up.pick_up_text)
 				else
-					player.change_room(room.index, "I don't understand.")
+					@movement.change_room(room.index, "I don't understand.")
 				end
 			end
-			player.change_room(room.index, "I don't understand.")
+			@movement.change_room(room.index)
 		else
-			player.change_room(room.index, "You can't do that.")
+			@movement.change_room(room.index, "You can't do that.")
 		end
-	end
-end
-
-class Player
-	attr_reader :intelligence
-	attr_accessor :items
-
-	def initialize(intelligence, world)
-		@items = []
-		@intelligence = intelligence
-		@world = world
-	end
-
-	def change_room(index, move_description)
-		room = @world.rooms.find { |room| room.index == index }
-		puts ' '
-		puts move_description
-		item_text = ""
-		if room.items.size > 0
-			item_text = room.items.reduce('') do |sum, item|
-				sum + " #{item.description} "
-			end
-		end
-		puts "#{room.description}#{item_text}"
-		print '> '
-		@intelligence.move(room, gets.chomp.downcase, self)
 	end
 end
 
@@ -196,7 +203,7 @@ room_A7 = Room.new('A7', "The wrap around porch ends abruptly. On the wall of th
 )
 world.rooms << room_A7
 
-player = Player.new(Intelligence.new, world)
+ai = Intelligence.new(world, Player.new)
 
 # let's start the game, boys!
 puts ' '
@@ -210,7 +217,7 @@ puts '****-----------'
 puts ' '
 puts room_A1.description
 print '> '
-player.intelligence.move(room_A1, gets.chomp.downcase, player)
+ai.interpret(room_A1, gets.chomp.downcase)
 
 
 
