@@ -1,3 +1,64 @@
+module FindRoom
+	def find_room(world, index)
+		room = world.rooms.find { |room| room.index == index }
+	end
+end
+
+class ParseQuery
+	def parse_query(query)
+		if query.include?('pick up ')
+			query = query[8..query.length]
+		end
+		query
+	end
+end
+
+class Engine
+	include FindRoom
+
+	def initialize(movement, queries, player)
+		@movement = movement
+		@queries = queries
+		@player = player
+	end
+
+	def start_game(starting_room)
+		puts ' '
+		puts '****-----------'
+		puts '*'
+		puts '*'
+		puts '*   Welcome to THE DARKWOODS BOARDING HOUSE....'
+		puts '*'
+		puts '*'
+		puts '****-----------'
+		puts ' '
+		puts starting_room.description
+		print '> '
+		interpret(starting_room, @player, gets.chomp.downcase)
+	end
+
+	def find_query(player_query)
+		@queries.find { |query| player_query == query.indicator }
+	end
+
+	def run_loop(new_room, player)
+		interpret(new_room, player, gets.chomp.downcase)
+	end
+
+	def interpret(room, player, player_query)
+		query = ParseQuery.new.parse_query(player_query)
+		result = find_query(query)
+		if result
+			index = result.make_move(@movement, room)
+			new_room = find_room(@movement.world, index)
+			run_loop(new_room, player)
+		else
+			puts "I don't understand."
+			run_loop(room, player)
+		end
+	end
+end
+
 class World
 	attr_accessor :rooms
 
@@ -44,15 +105,23 @@ class Player
 end
 
 class Movement
-	def initialize(world, player)
+	include FindRoom
+	attr_reader :world
+
+	def initialize(world)
 		@world = world
-		@player = player
 	end
 
 	def change_room(index, move_description = "I don't understand")
-		room = @world.rooms.find { |room| room.index == index }
+		room = find_room(@world, index)
 		puts ' '
 		puts move_description
+		tell_about_items(room)
+		print '> '
+		return index
+	end
+
+	def tell_about_items(room)
 		if room.items.size > 0
 			item_text = room.items.reduce('') do |sum, item|
 				sum + " #{item.description} "
@@ -61,77 +130,153 @@ class Movement
 		else
 			puts room.description
 		end
-		print '> '
-		Intelligence.new(@world, @player).interpret(room, gets.chomp.downcase)
 	end
 end
 
-class Intelligence
-	def initialize(world, player)
-		@world = world
-		@player = player
-		@movement = Movement.new(world, player)
+
+
+# class Intelligence
+# 	def initialize(movement)
+# 		@movement = movement
+# 	end
+
+# 	def interpret(room, query, player)
+# 		if query == 'quit'
+# 			exit
+# 		elsif query == 'i'
+# 			puts ' '
+# 			puts 'Your items:'.underline
+# 			player.items.each do |item|
+# 				puts item.true_name
+# 			end
+# 			@movement.change_room(room.index, '')
+# 		elsif query == 'n'
+# 			if room.directions[:north][1]
+# 				@movement.change_room(room.directions[:north][2], room.directions[:north][0])
+# 			else
+# 				@movement.change_room(room.index, room.directions[:north][0])
+# 			end
+# 		elsif query == 's'
+# 			if room.directions[:south][1]
+# 				@movement.change_room(room.directions[:south][2], room.directions[:south][0])
+# 			else
+# 				@movement.change_room(room.index, room.directions[:south][0])
+# 			end
+# 		elsif query == 'e'
+# 			if room.directions[:east][1]
+# 				@movement.change_room(room.directions[:east][2], room.directions[:east][0])
+# 			else
+# 				@movement.change_room(room.index, room.directions[:east][0])
+# 			end
+# 		elsif query == 'w'
+# 			if room.directions[:west][1]
+# 				@movement.change_room(room.directions[:west][2], room.directions[:west][0])
+# 			else
+# 				@movement.change_room(room.index, room.directions[:west][0])
+# 			end
+# 		elsif query.include?('pick up ')
+# 			query = query[8..query.length]
+# 			if room.items.size > 0
+# 				item_to_pick_up = nil
+# 				room.items.each do |item|
+# 					presence = item.names.find do |name|
+# 						name == query
+# 					end
+# 					if presence
+# 						item_to_pick_up = item
+# 					end
+# 				end
+# 				if !item_to_pick_up.nil?
+# 					player.items << item_to_pick_up
+# 					room.items.delete(item_to_pick_up)
+# 					@movement.change_room(room.index, item_to_pick_up.pick_up_text)
+# 				else
+# 					@movement.change_room(room.index, "I don't understand.")
+# 				end
+# 			end
+# 			@movement.change_room(room.index)
+# 		else
+# 			@movement.change_room(room.index, "You can't do that.")
+# 		end
+# 	end
+# end
+
+class Query
+	attr_reader :indicator
+
+	def initialize
+		@indicator = indicator
+	end
+end
+
+class Quit < Query
+	def initialize
+		@indicator = 'quit'
 	end
 
-	def interpret(room, query)
-		if query == 'quit'
-			return
-		elsif query == 'i'
-			puts ' '
-			puts 'Your items:'.underline
-			@player.items.each do |item|
-				puts item.true_name
-			end
-			@movement.change_room(room.index, '')
-		elsif query == 'n'
-			if room.directions[:north][1]
-				@movement.change_room(room.directions[:north][2], room.directions[:north][0])
-			else
-				@movement.change_room(room.index, room.directions[:north][0])
-			end
-		elsif query == 's'
-			if room.directions[:south][1]
-				@movement.change_room(room.directions[:south][2], room.directions[:south][0])
-			else
-				@movement.change_room(room.index, room.directions[:south][0])
-			end
-		elsif query == 'e'
-			if room.directions[:east][1]
-				@movement.change_room(room.directions[:east][2], room.directions[:east][0])
-			else
-				@movement.change_room(room.index, room.directions[:east][0])
-			end
-		elsif query == 'w'
-			if room.directions[:west][1]
-				@movement.change_room(room.directions[:west][2], room.directions[:west][0])
-			else
-				@movement.change_room(room.index, room.directions[:west][0])
-			end
-		elsif query.include?('pick up ')
-			query = query[8..query.length]
-			if room.items.size > 0
-				item_to_pick_up = nil
-				room.items.each do |item|
-					presence = item.names.find do |name|
-						name == query
-					end
-					if presence
-						item_to_pick_up = item
-					end
-				end
-				if !item_to_pick_up.nil?
-					@player.items << item_to_pick_up
-					room.items.delete(item_to_pick_up)
-					@movement.change_room(room.index, item_to_pick_up.pick_up_text)
-				else
-					@movement.change_room(room.index, "I don't understand.")
-				end
-			end
-			@movement.change_room(room.index)
+	def make_move
+		exit
+	end
+end
+
+class North < Query
+	def initialize
+		@indicator = 'n'
+	end
+
+	def make_move(movement, room)
+		if room.directions[:north][1]
+			movement.change_room(room.directions[:north][2], room.directions[:north][0])
 		else
-			@movement.change_room(room.index, "You can't do that.")
+			movement.change_room(room.index, room.directions[:north][0])
 		end
 	end
+end
+
+class South < Query
+	def initialize
+		@indicator = 's'
+	end
+
+	def make_move(movement, room)
+		if room.directions[:south][1]
+			movement.change_room(room.directions[:south][2], room.directions[:south][0])
+		else
+			movement.change_room(room.index, room.directions[:south][0])
+		end
+	end
+end
+
+class East < Query
+	def initialize
+		@indicator = 'e'
+	end
+
+	def make_move(movement, room)
+		if room.directions[:east][1]
+			movement.change_room(room.directions[:east][2], room.directions[:east][0])
+		else
+			movement.change_room(room.index, room.directions[:east][0])
+		end
+	end
+end
+
+class West < Query
+	def initialize
+		@indicator = 'w'
+	end
+
+	def make_move(movement, room)
+		if room.directions[:west][1]
+			movement.change_room(room.directions[:west][2], room.directions[:west][0])
+		else
+			movement.change_room(room.index, room.directions[:west][0])
+		end
+	end
+end
+
+class PickUp < Query
+
 end
 
 world = World.new
@@ -203,21 +348,14 @@ room_A7 = Room.new('A7', "The wrap around porch ends abruptly. On the wall of th
 )
 world.rooms << room_A7
 
-ai = Intelligence.new(world, Player.new)
 
-# let's start the game, boys!
-puts ' '
-puts '****-----------'
-puts '*'
-puts '*'
-puts '*   Welcome to THE DARKWOODS BOARDING HOUSE....'
-puts '*'
-puts '*'
-puts '****-----------'
-puts ' '
-puts room_A1.description
-print '> '
-ai.interpret(room_A1, gets.chomp.downcase)
+queries = [North.new, South.new, East.new, West.new, Quit.new]
+player = Player.new
+
+Engine.new(Movement.new(world), queries, player).start_game(room_A1)
+
+
+
 
 
 
