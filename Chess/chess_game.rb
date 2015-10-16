@@ -43,9 +43,6 @@ bP6 = Pawn.new([6,7], 'Black')
 bP7 = Pawn.new([7,7], 'Black')
 bP8 = Pawn.new([8,7], 'Black')
 
-
-
-
 pieces = [wB1, wB2, wR1, wR2, wP1, wP2, wP3, wP4, wP5, wP6, wP7, wP8, wN1, wN2, wQ, wK, bR1, bR2, bN1, bN2, bB1, bB2, bQ, bK, bP1, bP2, bP3, bP4, bP5, bP6, bP7, bP8]
 
 chess_board = Board.new(pieces)

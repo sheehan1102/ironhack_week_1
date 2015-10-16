@@ -26,8 +26,8 @@ class Board
 		puts "There is a piece in your way."
 	end
 
-	def piece_misuse(piece)
-		puts "You can't make that move with a #{piece.name}"
+	def piece_misuse
+		puts "You can't make that move with a #{@piece.name}"
 	end
 
 	def draw_board
@@ -87,61 +87,85 @@ class Board
 		origin == destination
 	end
 
-	def make_kill(piece, target, destination)
+	def make_kill(target, destination)
 		target.kill_piece
-		finish_move(piece, destination)
-		puts "You took the enemy #{waiting_piece.name}!"
+		finish_move(destination)
+		puts "You took the enemy #{target.name}!"
 	end
 
-	def look_for_kill(destination, moving_piece)
-		waiting_piece = piece_presence(destination)
-		if waiting_piece && waiting_piece.team != moving_piece.team
-			make_kill(moving_piece, waiting_piece, destination)
-		elsif waiting_piece
+	def look_for_kill(destination)
+		target = piece_presence(destination)
+		if target && target.team != @piece.team
+			make_kill(target, destination)
+		elsif target
 			blocking_piece
 		else
-			finish_move(moving_piece, destination)
 			puts "You made a move."
+			finish_move(destination)
 		end
 	end
 
-	def pawn_logic(piece, origin, destination)
+	def pawn_logic(origin, destination)
 		target = piece_presence(destination)
-		if target && target.team != piece.team
-			if piece.kill_logic(origin, destination)
-				make_kill(piece, target, destination)
+		if target && target.team != @piece.team
+			if @piece.kill_logic(origin, destination)
+				make_kill(target, destination)
+			else
+				piece_misuse(@piece)
 			end
-		elsif target	
-			piece_misuse(piece)
+		else
+			path = @piece.piece_logic(origin, destination)
+			confirm_path(path, destination)
 		end
-		piece.piece_logic(origin, destination)
 	end
 
-	def finish_move(piece, destination)
-		piece.coordinates = destination
+	def confirm_path(path, destination)
+		if path
+			sweep_path(path, destination)
+		else
+		 	piece_misuse
+		end
+	end
+
+	def sweep_path(path, destination)
+		if !check_path(path, destination)
+			look_for_kill(destination)
+		else
+			blocking_piece
+		end
+	end
+
+	def finish_move(destination)
+		@piece.coordinates = destination
+		@piece = nil
 		@move_counter += 1
 	end
 
+	def correct_color
+		if @piece.team == 'White' && @move_counter.odd?
+			true
+		elsif @piece.team == 'Black' && @move_counter.even?
+			true
+		else
+			false
+		end	
+	end
+
 	def move_piece(origin, destination)
-		@piece = piece_presence(origin) # here
-		if piece
+		@piece = piece_presence(origin)
+		if @piece && correct_color
 			if !check_for_static_move(origin, destination)
-				if piece.class != Pawn
-					pawn_logic(piece, origin, destination)
-				end
-				path = piece.piece_logic(origin, destination)
-				if path
-					if !check_path(path, destination)
-						look_for_kill(destination, piece)
-					else
-						blocking_piece
-					end
+				if @piece.class == Pawn
+					pawn_logic(origin, destination)
 				else
-					piece_misuse(piece)
+					path = @piece.piece_logic(origin, destination)
+					confirm_path(path, destination)
 				end
 			else
 				"You did not make a move."
 			end 
+		elsif @piece
+			puts "That's the wrong color."
 		else
 			puts "There is no piece in that square."
 		end
