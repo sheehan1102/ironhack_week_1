@@ -24,7 +24,7 @@ class Board
 	end
 
 	def instructions
-		puts "The pieces are: king, queen, bishop, knight, rook, pawn. Type the the origin then the destination: b6 to b4. Type 'i' for instructions, 'q' to quit."
+		puts "The pieces are: king, queen, bishop, knight, rook, pawn. Type the the origin then the destination: b6 to b4. Type 'i' for instructions, 'q' to quit.\n"
 	end
 
 	def draw_board
@@ -43,6 +43,7 @@ class Board
 			end
 			print "\n"
 		end
+		print "\n"
 	end
 
 	def library(coordinates)
@@ -85,7 +86,7 @@ class Board
 	def move_piece(origin, destination)
 		piece = piece_presence(origin)
 		if piece
-			if !check_for_static_move
+			if !check_for_static_move(origin, destination)
 				path = piece.piece_logic(origin, destination)
 				if path
 					if !check_path(path)
@@ -125,6 +126,7 @@ class Board
 		@gameplay = true
 		while @gameplay
 			draw_board
+			print '> '
 			game_logic(gets.chomp.downcase)
 		end
 	end

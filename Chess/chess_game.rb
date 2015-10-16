@@ -1,10 +1,14 @@
 require './lib/board'
 require './lib/pieces'
 require 'colorize'
-# require 'pry'
+require 'pry'
 
 wR1 = Rook.new([1,1], 'White')
 wR2 = Rook.new([8,1], 'White')
+wN1 = Knight.new([2,1], 'White')
+wN2 = Knight.new([7,1], 'White')
+wB1 = Bishop.new([3,1], 'White')
+wB2 = Bishop.new([6,1], 'White')
 
 wP1 = Pawn.new([1,2], 'White')
 wP2 = Pawn.new([2,2], 'White')
@@ -16,7 +20,7 @@ wP7 = Pawn.new([7,2], 'White')
 wP8 = Pawn.new([8,2], 'White')
 
 
-pieces = [wR1, wR2, wP1, wP2, wP3, wP4, wP5, wP6, wP7, wP8]
+pieces = [wR1, wR2, wP1, wP2, wP3, wP4, wP5, wP6, wP7, wP8, wN1, wN2, wB1, wB2]
 
 chess_board = Board.new(pieces)
 chess_board.initialize_board
