@@ -27,6 +27,24 @@ class Board
 		puts "The pieces are: king, queen, bishop, knight, rook, pawn. Type the the origin then the destination: b6 to b4. Type 'i' for instructions, 'q' to quit."
 	end
 
+	def draw_board
+		array = [*1..8].reverse
+		array.each do |num|
+			[*1..8].each do |x|
+				square = [x, num]
+				piece = piece_presence(square)
+				if piece && piece.team == 'White'
+					print piece.symbol.colorize(:color => :white, :background => :blue) + " "
+				elsif piece
+					print piece.symbol.colorize(:color => :light_black, :background => :green) + " "
+				else
+					print '+ '
+				end
+			end
+			print "\n"
+		end
+	end
+
 	def library(coordinates)
 		x = coordinates[0]
 		LOOK_UP.each do |pair|
@@ -45,16 +63,42 @@ class Board
 		piece
 	end
 
-	def move_piece(query)
+	def look_up_position(query)
 		origin = query[0..1]
 		destination = query[-2..-1]
 		origin = library(origin)
 		destination = library(destination)
+		move_piece(origin, destination)
+	end
+
+	def check_path(path)
+		conflict = path.find do |square|
+			piece_presence(square)
+		end
+		conflict
+	end
+
+	def check_for_static_move(origin, destination)
+		origin == destination
+	end
+
+	def move_piece(origin, destination)
 		piece = piece_presence(origin)
 		if piece
-			if piece.piece_logic(origin, destination)
-				piece.coordinates = destination
-				puts "Good move"
+			if !check_for_static_move
+				path = piece.piece_logic(origin, destination)
+				if path
+					if !check_path(path)
+						piece.coordinates = destination
+						puts "Good move"
+					else
+						puts "There is a piece in your way."
+					end
+				else
+					puts "You can't make that move with a #{piece.name}"
+				end
+			else
+				"You did not make a move."
 			end
 		else
 			puts "There is no piece in that square."
@@ -67,7 +111,7 @@ class Board
 		elsif query == 'q'
 			exit
 		elsif query.include?(' to ')
-			move_piece(query)	
+			look_up_position(query)	
 		else
 			"I don't understand"	
 		end
@@ -80,8 +124,8 @@ class Board
 		instructions
 		@gameplay = true
 		while @gameplay
+			draw_board
 			game_logic(gets.chomp.downcase)
-
 		end
 	end
 end
