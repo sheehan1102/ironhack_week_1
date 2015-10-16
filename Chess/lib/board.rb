@@ -1,5 +1,5 @@
 class Board
-	attr_accessor :board
+	attr_accessor :board, :move_counter
 	LOOK_UP = [
 			['a', 1],
 			['b', 2],
@@ -14,17 +14,20 @@ class Board
 	def initialize(pieces)
 		@pieces = pieces
 		@board = []
-	end
-
-	def initialize_board
-		row = (0..8).to_a
-		for i in 1..8
-			@board[i] = row
-		end
+		@move_counter = 1
+		@piece = nil
 	end
 
 	def instructions
 		puts "The pieces are: king, queen, bishop, knight, rook, pawn. Type the the origin then the destination: b6 to b4. Type 'i' for instructions, 'q' to quit.\n"
+	end
+
+	def blocking_piece
+		puts "There is a piece in your way."
+	end
+
+	def piece_misuse(piece)
+		puts "You can't make that move with a #{piece.name}"
 	end
 
 	def draw_board
@@ -36,7 +39,7 @@ class Board
 				if piece && piece.team == 'White'
 					print piece.symbol.colorize(:color => :white, :background => :blue) + " "
 				elsif piece
-					print piece.symbol.colorize(:color => :light_black, :background => :green) + " "
+					print piece.symbol.colorize(:color => :red, :background => :green) + " "
 				else
 					print '+ '
 				end
@@ -72,7 +75,8 @@ class Board
 		move_piece(origin, destination)
 	end
 
-	def check_path(path)
+	def check_path(path, destination)
+		path.delete(destination)
 		conflict = path.find do |square|
 			piece_presence(square)
 		end
@@ -83,24 +87,61 @@ class Board
 		origin == destination
 	end
 
+	def make_kill(piece, target, destination)
+		target.kill_piece
+		finish_move(piece, destination)
+		puts "You took the enemy #{waiting_piece.name}!"
+	end
+
+	def look_for_kill(destination, moving_piece)
+		waiting_piece = piece_presence(destination)
+		if waiting_piece && waiting_piece.team != moving_piece.team
+			make_kill(moving_piece, waiting_piece, destination)
+		elsif waiting_piece
+			blocking_piece
+		else
+			finish_move(moving_piece, destination)
+			puts "You made a move."
+		end
+	end
+
+	def pawn_logic(piece, origin, destination)
+		target = piece_presence(destination)
+		if target && target.team != piece.team
+			if piece.kill_logic(origin, destination)
+				make_kill(piece, target, destination)
+			end
+		elsif target	
+			piece_misuse(piece)
+		end
+		piece.piece_logic(origin, destination)
+	end
+
+	def finish_move(piece, destination)
+		piece.coordinates = destination
+		@move_counter += 1
+	end
+
 	def move_piece(origin, destination)
-		piece = piece_presence(origin)
+		@piece = piece_presence(origin) # here
 		if piece
 			if !check_for_static_move(origin, destination)
+				if piece.class != Pawn
+					pawn_logic(piece, origin, destination)
+				end
 				path = piece.piece_logic(origin, destination)
 				if path
-					if !check_path(path)
-						piece.coordinates = destination
-						puts "Good move"
+					if !check_path(path, destination)
+						look_for_kill(destination, piece)
 					else
-						puts "There is a piece in your way."
+						blocking_piece
 					end
 				else
-					puts "You can't make that move with a #{piece.name}"
+					piece_misuse(piece)
 				end
 			else
 				"You did not make a move."
-			end
+			end 
 		else
 			puts "There is no piece in that square."
 		end
@@ -111,10 +152,10 @@ class Board
 			instructions
 		elsif query == 'q'
 			exit
-		elsif query.include?(' to ')
+		elsif query.include?(' to ') && query.size == 8
 			look_up_position(query)	
 		else
-			"I don't understand"	
+			puts "I don't understand"	
 		end
 	end
 
